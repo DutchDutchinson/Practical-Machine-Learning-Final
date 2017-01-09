@@ -1,0 +1,58 @@
+---
+title: "Final Project"
+author: "Dutch"
+date: "January 8, 2017"
+output: html_document
+---
+
+##Data Cleaning and Partition
+Load the data and create train and test sets
+```{r}
+
+library(data.table)
+train <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv', na.strings = c("NA","#DIV/0!",""))
+FINAL <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv', na.strings = c("NA","#DIV/0!",""))
+
+library(caret)
+inTrain <- createDataPartition(train$classe, p=0.6, list=FALSE)
+myTrain <- train[inTrain, ]
+myTest <- train[-inTrain,  ]
+
+```
+
+
+I need to determine which variables are key indicators for certain classes. Only looking at accelerometers on the belt, forearm, arm, and dumbell. I will delete the first 6 variables, as these are irrelevant.  Then, I will remove any variable where there are NAs. 
+```{r}
+myTrain <- myTrain[,-(1:6)]
+myTest <- myTest[,-(1:6)]
+FINAL <- FINAL[,-(1:6)]
+#Take out NAs
+myTrain <- myTrain[, colSums(is.na(myTrain)) == 0]
+myTest <- myTest[, colSums(is.na(myTest)) == 0]
+FINAL <- FINAL[, colSums(is.na(FINAL)) == 0]
+
+```
+
+##Model Selection and Creation
+Model Selection - LETS GO!!  First I will do decision trees.
+```{r}
+library(rpart)
+fit1 <- rpart(classe~., data=myTrain, method="class")
+predict1 <- predict(fit1, myTest, type = "class")
+confusionMatrix(predict1, myTest$classe)
+library(rattle)
+fancyRpartPlot(fit1)
+```
+
+I can see the Accuracy is .766 on this model.  Next, I will do random forest analysis.
+```{r}
+library(RColorBrewer)
+library(randomForest)
+fit2 <- randomForest(classe ~., data = myTrain, method = "class")
+predict2 <- predict(fit2, myTest, method = "class")
+confusionMatrix(predict2, myTest$classe)
+plot(fit2)
+```
+
+##Conclusions and Out of Sample Error Rate
+Random Forest got me 99.67% accuracy.  This means my predicted out of sample error rate is expected to be 100-99.67 or .33%.
